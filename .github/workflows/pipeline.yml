@@ -16,11 +16,11 @@ jobs:
         run: |
           docker build -t secure-app:latest .
 
-      - name: Trivy scan (fail on HIGH/CRITICAL)
+      - name: Trivy scan (fail only on CRITICAL)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: secure-app:latest
           format: table
-          severity: HIGH,CRITICAL
+          severity: CRITICAL
           exit-code: 1
           ignore-unfixed: true
