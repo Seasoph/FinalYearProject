@@ -1,20 +1,27 @@
-name: Iteration 1 - Build and Scan
+name: Iteration 1 - Build, Scan, Push to ECR
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
-  build-and-scan:
+  build-scan-push:
     runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      AWS_REGION: eu-west-1
+      ECR_REPO: 159906127313.dkr.ecr.eu-west-1.amazonaws.com/secure-app-real
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: |
-          docker build -t secure-app:latest .
+        run: docker build -t secure-app:latest .
 
       - name: Trivy scan (fail only on CRITICAL)
         uses: aquasecurity/trivy-action@master
@@ -24,3 +31,17 @@ jobs:
           severity: CRITICAL
           exit-code: 1
           ignore-unfixed: true
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::159906127313:role/GitHubActions-ECR-Push
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Tag and push (latest only)
+        run: |
+          docker tag secure-app:latest $ECR_REPO:latest
+          docker push $ECR_REPO:latest
