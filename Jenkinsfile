@@ -7,13 +7,6 @@ pipeline {
     }
 
     stages {
-
-        stage('Checkout') {
-            steps {
-                git 'https://github.com/Seasoph/FinalYearProject.git'
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t secure-app:latest .'
