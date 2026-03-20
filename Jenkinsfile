@@ -4,6 +4,7 @@ pipeline {
     environment {
         AWS_REGION = 'eu-west-1'
         ECR_REPO = '159906127313.dkr.ecr.eu-west-1.amazonaws.com/secure-app-real'
+        ECR_REGISTRY = '159906127313.dkr.ecr.eu-west-1.amazonaws.com'
     }
 
     stages {
@@ -24,13 +25,22 @@ pipeline {
 
         stage('Push to ECR') {
             steps {
-                sh '''
-                aws ecr get-login-password --region $AWS_REGION | docker login \
-                --username AWS --password-stdin $ECR_REPO
+                withCredentials([
+                    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    sh '''
+                    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                    export AWS_DEFAULT_REGION=$AWS_REGION
 
-                docker tag secure-app:latest $ECR_REPO:latest
-                docker push $ECR_REPO:latest
-                '''
+                    aws ecr get-login-password --region $AWS_REGION | docker login \
+                    --username AWS --password-stdin $ECR_REGISTRY
+
+                    docker tag secure-app:latest $ECR_REPO:latest
+                    docker push $ECR_REPO:latest
+                    '''
+                }
             }
         }
     }
