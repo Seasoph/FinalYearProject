@@ -5,8 +5,11 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  AWS_REGION: 'eu-west-1'
-  ECR_REPO: '159906127313.dkr.ecr.eu-west-1.amazonaws.com/secure-app-real'
+- group: aws-credentials
+- name: AWS_REGION
+  value: 'eu-west-1'
+- name: ECR_REPO
+  value: '159906127313.dkr.ecr.eu-west-1.amazonaws.com/secure-app-real'
 
 stages:
 - stage: Build
@@ -23,7 +26,7 @@ stages:
     - script: |
         docker run --rm \
         -v /var/run/docker.sock:/var/run/docker.sock \
-        aquasec/trivy image \
+        aquasec/trivy:0.50.2 image \
         --severity CRITICAL \
         --exit-code 1 \
         secure-app:latest
@@ -36,6 +39,10 @@ stages:
     - script: |
         sudo apt-get update
         sudo apt-get install -y awscli
+
+        export AWS_ACCESS_KEY_ID=$(AWS_ACCESS_KEY_ID)
+        export AWS_SECRET_ACCESS_KEY=$(AWS_SECRET_ACCESS_KEY)
+        export AWS_DEFAULT_REGION=$(AWS_REGION)
 
         aws ecr get-login-password --region $(AWS_REGION) | docker login \
         --username AWS \
