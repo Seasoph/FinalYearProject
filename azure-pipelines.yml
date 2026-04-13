@@ -1,0 +1,46 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  AWS_REGION: 'eu-west-1'
+  ECR_REPO: '159906127313.dkr.ecr.eu-west-1.amazonaws.com/secure-app-real'
+
+stages:
+- stage: Build
+  jobs:
+  - job: BuildImage
+    steps:
+    - script: docker build -t secure-app:latest .
+      displayName: 'Build Docker Image'
+
+- stage: SecurityScan
+  jobs:
+  - job: TrivyScan
+    steps:
+    - script: |
+        docker run --rm \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        aquasec/trivy image \
+        --severity CRITICAL \
+        --exit-code 1 \
+        secure-app:latest
+      displayName: 'Run Trivy Scan'
+
+- stage: PushToECR
+  jobs:
+  - job: PushImage
+    steps:
+    - script: |
+        sudo apt-get update
+        sudo apt-get install -y awscli
+
+        aws ecr get-login-password --region $(AWS_REGION) | docker login \
+        --username AWS \
+        --password-stdin 159906127313.dkr.ecr.eu-west-1.amazonaws.com
+
+        docker tag secure-app:latest $(ECR_REPO):latest
+        docker push $(ECR_REPO):latest
+      displayName: 'Push to AWS ECR'
