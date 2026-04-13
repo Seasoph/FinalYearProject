@@ -34,12 +34,7 @@ stages:
       displayName: 'Run Trivy Scan'
 
     - script: |
-        sudo apt-get update
-        sudo apt-get install -y awscli
-
-        export AWS_ACCESS_KEY_ID=$(AWS_ACCESS_KEY_ID)
-        export AWS_SECRET_ACCESS_KEY=$(AWS_SECRET_ACCESS_KEY)
-        export AWS_DEFAULT_REGION=$(AWS_REGION)
+        echo "Logging into AWS ECR..."
 
         aws ecr get-login-password --region $(AWS_REGION) | docker login \
         --username AWS \
@@ -48,3 +43,7 @@ stages:
         docker tag secure-app:latest $(ECR_REPO):latest
         docker push $(ECR_REPO):latest
       displayName: 'Push to AWS ECR'
+      env:
+        AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
+        AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+        AWS_DEFAULT_REGION: $(AWS_REGION)
